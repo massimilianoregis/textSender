@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat
 class MainActivity : AppCompatActivity() {
     private lateinit var sourceUrl: EditText
     private lateinit var callbackUrl: EditText
+    private lateinit var jwt: EditText
     private lateinit var pollSeconds: EditText
     private lateinit var manualMode: RadioButton
     private lateinit var automaticMode: RadioButton
@@ -35,6 +36,7 @@ class MainActivity : AppCompatActivity() {
 
         sourceUrl = findViewById(R.id.sourceUrl)
         callbackUrl = findViewById(R.id.callbackUrl)
+        jwt = findViewById(R.id.jwt)
         pollSeconds = findViewById(R.id.pollSeconds)
         manualMode = findViewById(R.id.manualMode)
         automaticMode = findViewById(R.id.automaticMode)
@@ -92,6 +94,7 @@ class MainActivity : AppCompatActivity() {
         val config = GatewayPreferences.load(this)
         sourceUrl.setText(config.sourceUrl)
         callbackUrl.setText(config.callbackUrl)
+        jwt.setText(config.jwt)
         pollSeconds.setText(config.pollSeconds.toString())
         manualMode.isChecked = config.mode == GatewayMode.MANUAL
         automaticMode.isChecked = config.mode == GatewayMode.AUTOMATIC
@@ -102,6 +105,7 @@ class MainActivity : AppCompatActivity() {
         return GatewayConfig(
             sourceUrl = sourceUrl.text.toString(),
             callbackUrl = callbackUrl.text.toString(),
+            jwt = jwt.text.toString(),
             pollSeconds = seconds,
             mode = if (automaticMode.isChecked) GatewayMode.AUTOMATIC else GatewayMode.MANUAL
         )
@@ -110,7 +114,7 @@ class MainActivity : AppCompatActivity() {
     private fun saveConfig(): Boolean {
         val config = readConfig()
         if (!config.valid) {
-            status.text = "Enter valid http/https URLs and polling seconds >= 1"
+            status.text = "Enter valid URLs, a JWT and polling seconds >= 1"
             return false
         }
         GatewayPreferences.save(this, config)
@@ -126,7 +130,7 @@ class MainActivity : AppCompatActivity() {
         status.text = "Loading JSON…"
         Thread {
             try {
-                val items = http.fetch(config.sourceUrl)
+                val items = http.fetch(config.sourceUrl, config.jwt)
                 runOnUiThread {
                     currentItems = items
                     renderItems(items)
@@ -177,7 +181,7 @@ class MainActivity : AppCompatActivity() {
         Thread {
             val result = SmsSendCoordinator.sendAndWait(this, item)
             val callbackError = try {
-                http.report(config.callbackUrl, item, result)
+                http.report(config.callbackUrl, config.jwt, item, result)
                 null
             } catch (error: Exception) {
                 error.message ?: error.javaClass.simpleName

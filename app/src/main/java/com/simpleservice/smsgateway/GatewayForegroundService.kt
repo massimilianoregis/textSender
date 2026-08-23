@@ -53,7 +53,7 @@ class GatewayForegroundService : Service() {
 
             updateNotification("Checking for SMS…")
             try {
-                val items = http.fetch(config.sourceUrl)
+                val items = http.fetch(config.sourceUrl, config.jwt)
                 if (items.isEmpty()) {
                     updateNotification("No SMS. Next check in ${config.pollSeconds}s")
                 } else {
@@ -62,7 +62,7 @@ class GatewayForegroundService : Service() {
                         updateNotification("Sending ${index + 1}/${items.size} · ${item.id}")
                         val result = SmsSendCoordinator.sendAndWait(this, item)
                         try {
-                            http.report(config.callbackUrl, item, result)
+                            http.report(config.callbackUrl, config.jwt, item, result)
                         } catch (_: Exception) {
                             // Stateless by design: callback failures are not persisted or retried locally.
                         }

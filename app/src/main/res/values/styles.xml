@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.SmsGateway" parent="Theme.AppCompat.DayNight.NoActionBar" />
+</resources>

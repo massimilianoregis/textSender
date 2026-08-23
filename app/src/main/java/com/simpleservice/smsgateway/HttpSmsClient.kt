@@ -18,11 +18,12 @@ class HttpSmsClient {
         .retryOnConnectionFailure(true)
         .build()
 
-    fun fetch(url: String): List<SmsItem> {
+    fun fetch(url: String, jwt: String): List<SmsItem> {
         val request = Request.Builder()
             .url(url)
             .get()
             .header("Accept", "application/json")
+            .header("Authorization", "Bearer ${jwt.trim()}")
             .build()
 
         client.newCall(request).execute().use { response ->
@@ -46,7 +47,7 @@ class HttpSmsClient {
         }
     }
 
-    fun report(callbackUrl: String, item: SmsItem, result: SmsSendResult) {
+    fun report(callbackUrl: String, jwt: String, item: SmsItem, result: SmsSendResult) {
         val payload = JSONObject()
             .put("id", item.id)
             .put("status", if (result.ok) "OK" else "KO")
@@ -59,6 +60,7 @@ class HttpSmsClient {
             .url(callbackUrl)
             .post(body)
             .header("Accept", "application/json")
+            .header("Authorization", "Bearer ${jwt.trim()}")
             .build()
 
         client.newCall(request).execute().use { response ->

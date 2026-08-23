@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SMS JSON Gateway"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Reads a JSON array and sends each SMS through this phone's SIM." />
+
+        <EditText
+            android:id="@+id/sourceUrl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:hint="JSON URL, e.g. https://server/phone-text/queue"
+            android:inputType="textUri" />
+
+        <EditText
+            android:id="@+id/callbackUrl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Result URL, e.g. https://server/phone-text/result"
+            android:inputType="textUri" />
+
+        <EditText
+            android:id="@+id/jwt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="JWT (sent as Authorization: Bearer …)"
+            android:inputType="textPassword"
+            android:singleLine="true" />
+
+        <EditText
+            android:id="@+id/pollSeconds"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Polling seconds"
+            android:inputType="number"
+            android:text="30" />
+
+        <RadioGroup
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/manualMode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="Manual" />
+
+            <RadioButton
+                android:id="@+id/automaticMode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="18dp"
+                android:text="Automatic" />
+        </RadioGroup>
+
+        <Button
+            android:id="@+id/saveButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Save configuration" />
+
+        <Button
+            android:id="@+id/fetchButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Load SMS list" />
+
+        <Button
+            android:id="@+id/reviewButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Review and send one by one" />
+
+        <Button
+            android:id="@+id/startBackgroundButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Start background polling"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/stopBackgroundButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Stop background polling"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Ready"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:id="@+id/messageList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="vertical" />
+
+    </LinearLayout>
+</ScrollView>

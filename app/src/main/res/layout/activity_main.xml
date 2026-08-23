@@ -27,15 +27,23 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
-            android:hint="JSON URL, e.g. https://server/sms/pending"
+            android:hint="JSON URL, e.g. https://server/phone-text/queue"
             android:inputType="textUri" />
 
         <EditText
             android:id="@+id/callbackUrl"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Result URL, e.g. https://server/sms/result"
+            android:hint="Result URL, e.g. https://server/phone-text/result"
             android:inputType="textUri" />
+
+        <EditText
+            android:id="@+id/jwt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="JWT (sent as Authorization: Bearer …)"
+            android:inputType="textPassword"
+            android:singleLine="true" />
 
         <EditText
             android:id="@+id/pollSeconds"

@@ -69,6 +69,13 @@ object GatewayPreferences {
         return id
     }
 
+    fun updateJwt(context: Context, previous: String, renewed: String) {
+        val prefs = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+        if (prefs.getString(JWT, null) == previous) {
+            prefs.edit().putString(JWT, renewed).commit()
+        }
+    }
+
     fun isBackgroundEnabled(context: Context): Boolean =
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
             .getBoolean(BACKGROUND_ENABLED, false)

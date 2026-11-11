@@ -36,6 +36,7 @@ class MainActivity : AppCompatActivity() {
         importQrConfig(text)
     }
     private var currentItems: List<SmsItem> = emptyList()
+    private var displayedJwt: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -119,6 +120,7 @@ class MainActivity : AppCompatActivity() {
             sourceUrl.setText(queue)
             callbackUrl.setText(result)
             jwt.setText(token)
+            displayedJwt = token
             GatewayPreferences.save(this, imported)
             status.text = "QR configuration imported and saved"
         } catch (_: Exception) {
@@ -131,6 +133,7 @@ class MainActivity : AppCompatActivity() {
         sourceUrl.setText(config.sourceUrl)
         callbackUrl.setText(config.callbackUrl)
         jwt.setText(config.jwt)
+        displayedJwt = config.jwt
         pollSeconds.setText(config.pollSeconds.toString())
         manualMode.isChecked = config.mode == GatewayMode.MANUAL
         automaticMode.isChecked = config.mode == GatewayMode.AUTOMATIC
@@ -148,12 +151,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveConfig(): Boolean {
+        val stored = GatewayPreferences.load(this)
+        // A background renewal must not be overwritten by the old token still shown on screen.
+        if (jwt.text.toString().trim() == displayedJwt && stored.jwt != displayedJwt) {
+            jwt.setText(stored.jwt)
+            displayedJwt = stored.jwt
+        }
         val config = readConfig()
         if (!config.valid) {
             status.text = "Enter valid URLs, a JWT and polling seconds >= 1"
             return false
         }
         GatewayPreferences.save(this, config)
+        displayedJwt = config.jwt.trim()
         if (config.mode == GatewayMode.MANUAL && GatewayPreferences.isBackgroundEnabled(this)) {
             GatewayPreferences.setBackgroundEnabled(this, false)
             stopService(Intent(this, GatewayForegroundService::class.java))

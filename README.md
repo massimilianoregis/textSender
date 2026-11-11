@@ -60,3 +60,7 @@ The app creates a persistent installation ID and includes it, the Android device
 The JWT is **issued by the backend through its authentication named call**, not by Android. Scanning an updated QR replaces the JWT locally; it does not revoke any previous JWT. Treat the QR as a secret.
 
 > Multiple simultaneously running gateways sharing one queue may send the same SMS more than once because polling is deliberately non-destructive.
+
+## Automatic JWT renewal
+
+While polling (in manual or automatic mode), the app checks the JWT expiry and calls `POST /phone-text/renew` seven days before expiration. The backend issues a fresh 90-day token through SimpleService authentication, and the app saves it for subsequent polls and callbacks. A temporary renewal failure does not prevent polling while the old token is still valid. If the phone stays offline until the JWT expires, scan a new configuration QR to restore access.

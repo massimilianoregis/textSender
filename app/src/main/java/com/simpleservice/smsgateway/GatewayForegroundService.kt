@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class GatewayForegroundService : Service() {
     private val running = AtomicBoolean(false)
     private var worker: Thread? = null
-    private val http = HttpSmsClient()
+    private val http by lazy { HttpSmsClient(this) }
 
     override fun onCreate() {
         super.onCreate()

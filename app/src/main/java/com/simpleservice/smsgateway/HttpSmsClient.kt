@@ -1,5 +1,7 @@
 package com.simpleservice.smsgateway
 
+import android.content.Context
+import android.os.Build
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -10,7 +12,7 @@ import java.io.IOException
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 
-class HttpSmsClient {
+class HttpSmsClient(private val context: Context) {
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
@@ -24,6 +26,9 @@ class HttpSmsClient {
             .get()
             .header("Accept", "application/json")
             .header("Authorization", "Bearer ${jwt.trim()}")
+            .header("X-TextSender-Device-Id", GatewayPreferences.deviceId(context))
+            .header("X-TextSender-Device-Model", (Build.MANUFACTURER + " " + Build.MODEL).take(120))
+            .header("X-TextSender-App-Version", "2.2")
             .build()
 
         client.newCall(request).execute().use { response ->
@@ -61,6 +66,9 @@ class HttpSmsClient {
             .post(body)
             .header("Accept", "application/json")
             .header("Authorization", "Bearer ${jwt.trim()}")
+            .header("X-TextSender-Device-Id", GatewayPreferences.deviceId(context))
+            .header("X-TextSender-Device-Model", (Build.MANUFACTURER + " " + Build.MODEL).take(120))
+            .header("X-TextSender-App-Version", "2.2")
             .build()
 
         client.newCall(request).execute().use { response ->

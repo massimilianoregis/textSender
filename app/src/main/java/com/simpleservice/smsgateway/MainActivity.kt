@@ -12,6 +12,9 @@ import android.widget.RadioButton
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
+import org.json.JSONObject
 import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
@@ -27,8 +30,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var stopBackgroundButton: Button
     private lateinit var reviewButton: Button
 
-    private val http = HttpSmsClient()
+    private val http by lazy { HttpSmsClient(this) }
+    private val qrScanner = registerForActivityResult(ScanContract()) { result ->
+        val text = result.contents ?: return@registerForActivityResult
+        importQrConfig(text)
+    }
     private var currentItems: List<SmsItem> = emptyList()
+    private var displayedJwt: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,6 +60,15 @@ class MainActivity : AppCompatActivity() {
 
         manualMode.setOnCheckedChangeListener { _, checked -> if (checked) refreshModeUi() }
         automaticMode.setOnCheckedChangeListener { _, checked -> if (checked) refreshModeUi() }
+
+        findViewById<Button>(R.id.scanQrButton).setOnClickListener {
+            qrScanner.launch(ScanOptions().apply {
+                setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+                setPrompt("Scan the SMS Gateway configuration QR")
+                setBeepEnabled(false)
+                setOrientationLocked(false)
+            })
+        }
 
         findViewById<Button>(R.id.saveButton).setOnClickListener {
             if (saveConfig()) status.text = "Configuration saved"
@@ -90,11 +107,33 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun importQrConfig(text: String) {
+        try {
+            val data = JSONObject(text)
+            if (data.optInt("v") != 1) throw IllegalArgumentException("Unsupported QR version")
+            val queue = data.getString("queue").trim()
+            val result = data.getString("result").trim()
+            val token = data.getString("jwt").trim()
+            val current = GatewayPreferences.load(this)
+            val imported = current.copy(sourceUrl = queue, callbackUrl = result, jwt = token)
+            if (!imported.valid) throw IllegalArgumentException("Invalid URLs or JWT")
+            sourceUrl.setText(queue)
+            callbackUrl.setText(result)
+            jwt.setText(token)
+            displayedJwt = token
+            GatewayPreferences.save(this, imported)
+            status.text = "QR configuration imported and saved"
+        } catch (_: Exception) {
+            status.text = "Invalid gateway configuration QR"
+        }
+    }
+
     private fun loadConfig() {
         val config = GatewayPreferences.load(this)
         sourceUrl.setText(config.sourceUrl)
         callbackUrl.setText(config.callbackUrl)
         jwt.setText(config.jwt)
+        displayedJwt = config.jwt
         pollSeconds.setText(config.pollSeconds.toString())
         manualMode.isChecked = config.mode == GatewayMode.MANUAL
         automaticMode.isChecked = config.mode == GatewayMode.AUTOMATIC
@@ -112,12 +151,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveConfig(): Boolean {
+        val stored = GatewayPreferences.load(this)
+        // A background renewal must not be overwritten by the old token still shown on screen.
+        if (jwt.text.toString().trim() == displayedJwt && stored.jwt != displayedJwt) {
+            jwt.setText(stored.jwt)
+            displayedJwt = stored.jwt
+        }
         val config = readConfig()
         if (!config.valid) {
             status.text = "Enter valid URLs, a JWT and polling seconds >= 1"
             return false
         }
         GatewayPreferences.save(this, config)
+        displayedJwt = config.jwt.trim()
         if (config.mode == GatewayMode.MANUAL && GatewayPreferences.isBackgroundEnabled(this)) {
             GatewayPreferences.setBackgroundEnabled(this, false)
             stopService(Intent(this, GatewayForegroundService::class.java))
@@ -130,7 +176,8 @@ class MainActivity : AppCompatActivity() {
         status.text = "Loading JSON…"
         Thread {
             try {
-                val items = http.fetch(config.sourceUrl, config.jwt)
+                val token = http.activeJwt(config)
+                val items = http.fetch(config.sourceUrl, token)
                 runOnUiThread {
                     currentItems = items
                     renderItems(items)
@@ -181,7 +228,7 @@ class MainActivity : AppCompatActivity() {
         Thread {
             val result = SmsSendCoordinator.sendAndWait(this, item)
             val callbackError = try {
-                http.report(config.callbackUrl, config.jwt, item, result)
+                http.report(config.callbackUrl, http.activeJwt(GatewayPreferences.load(this)), item, result)
                 null
             } catch (error: Exception) {
                 error.message ?: error.javaClass.simpleName

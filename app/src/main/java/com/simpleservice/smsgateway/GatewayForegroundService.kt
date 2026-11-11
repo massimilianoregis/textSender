@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class GatewayForegroundService : Service() {
     private val running = AtomicBoolean(false)
     private var worker: Thread? = null
-    private val http = HttpSmsClient()
+    private val http by lazy { HttpSmsClient(this) }
 
     override fun onCreate() {
         super.onCreate()
@@ -53,7 +53,8 @@ class GatewayForegroundService : Service() {
 
             updateNotification("Checking for SMS…")
             try {
-                val items = http.fetch(config.sourceUrl, config.jwt)
+                val token = http.activeJwt(config)
+                val items = http.fetch(config.sourceUrl, token)
                 if (items.isEmpty()) {
                     updateNotification("No SMS. Next check in ${config.pollSeconds}s")
                 } else {
@@ -62,7 +63,7 @@ class GatewayForegroundService : Service() {
                         updateNotification("Sending ${index + 1}/${items.size} · ${item.id}")
                         val result = SmsSendCoordinator.sendAndWait(this, item)
                         try {
-                            http.report(config.callbackUrl, config.jwt, item, result)
+                            http.report(config.callbackUrl, http.activeJwt(GatewayPreferences.load(this)), item, result)
                         } catch (_: Exception) {
                             // Stateless by design: callback failures are not persisted or retried locally.
                         }

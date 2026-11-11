@@ -12,6 +12,9 @@ import android.widget.RadioButton
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
+import org.json.JSONObject
 import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
@@ -27,7 +30,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var stopBackgroundButton: Button
     private lateinit var reviewButton: Button
 
-    private val http = HttpSmsClient()
+    private val http by lazy { HttpSmsClient(this) }
+    private val qrScanner = registerForActivityResult(ScanContract()) { result ->
+        val text = result.contents ?: return@registerForActivityResult
+        importQrConfig(text)
+    }
     private var currentItems: List<SmsItem> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,6 +59,15 @@ class MainActivity : AppCompatActivity() {
 
         manualMode.setOnCheckedChangeListener { _, checked -> if (checked) refreshModeUi() }
         automaticMode.setOnCheckedChangeListener { _, checked -> if (checked) refreshModeUi() }
+
+        findViewById<Button>(R.id.scanQrButton).setOnClickListener {
+            qrScanner.launch(ScanOptions().apply {
+                setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+                setPrompt("Scan the SMS Gateway configuration QR")
+                setBeepEnabled(false)
+                setOrientationLocked(false)
+            })
+        }
 
         findViewById<Button>(R.id.saveButton).setOnClickListener {
             if (saveConfig()) status.text = "Configuration saved"
@@ -87,6 +103,26 @@ class MainActivity : AppCompatActivity() {
             GatewayPreferences.setBackgroundEnabled(this, false)
             stopService(Intent(this, GatewayForegroundService::class.java))
             renderBackgroundStatus()
+        }
+    }
+
+    private fun importQrConfig(text: String) {
+        try {
+            val data = JSONObject(text)
+            if (data.optInt("v") != 1) throw IllegalArgumentException("Unsupported QR version")
+            val queue = data.getString("queue").trim()
+            val result = data.getString("result").trim()
+            val token = data.getString("jwt").trim()
+            val current = GatewayPreferences.load(this)
+            val imported = current.copy(sourceUrl = queue, callbackUrl = result, jwt = token)
+            if (!imported.valid) throw IllegalArgumentException("Invalid URLs or JWT")
+            sourceUrl.setText(queue)
+            callbackUrl.setText(result)
+            jwt.setText(token)
+            GatewayPreferences.save(this, imported)
+            status.text = "QR configuration imported and saved"
+        } catch (_: Exception) {
+            status.text = "Invalid gateway configuration QR"
         }
     }
 

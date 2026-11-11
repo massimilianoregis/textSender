@@ -1,6 +1,7 @@
 package com.simpleservice.smsgateway
 
 import android.content.Context
+import java.util.UUID
 
 enum class GatewayMode { MANUAL, AUTOMATIC }
 
@@ -26,6 +27,7 @@ object GatewayPreferences {
     private const val POLL_SECONDS = "pollSeconds"
     private const val MODE = "mode"
     private const val BACKGROUND_ENABLED = "backgroundEnabled"
+    private const val DEVICE_ID = "deviceId"
 
     fun load(context: Context): GatewayConfig {
         val p = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
@@ -56,6 +58,15 @@ object GatewayPreferences {
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
             .putBoolean(BACKGROUND_ENABLED, value)
             .apply()
+    }
+
+    fun deviceId(context: Context): String {
+        val prefs = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+        val existing = prefs.getString(DEVICE_ID, null)
+        if (!existing.isNullOrBlank()) return existing
+        val id = UUID.randomUUID().toString()
+        prefs.edit().putString(DEVICE_ID, id).apply()
+        return id
     }
 
     fun isBackgroundEnabled(context: Context): Boolean =

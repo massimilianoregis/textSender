@@ -46,3 +46,17 @@ A failure uses `status: "KO"` and adds an `error` field.
 ## APK
 
 GitHub Actions builds `app-debug.apk` and publishes it as the `sms-json-gateway-apk` artifact.
+
+## QR configuration (v2.2)
+
+In the administrator-only `/phone-text/ui` dashboard, choose **Generate QR code**. In the Android app, tap **Scan configuration QR**. The app checks a versioned JSON payload and saves the queue URL, result URL and JWT while preserving the existing polling interval and manual/automatic mode. Manual entry is still supported.
+
+```json
+{"v":1,"queue":"https://example.com/phone-text/queue","result":"https://example.com/phone-text/result","jwt":"<JWT>"}
+```
+
+The app creates a persistent installation ID and includes it, the Android device model and application version in authenticated queue polls/results. The gateway backend can use these to show the last successful poll for each device.
+
+The JWT is **issued by the backend through its authentication named call**, not by Android. Scanning an updated QR replaces the JWT locally; it does not revoke any previous JWT. Treat the QR as a secret.
+
+> Multiple simultaneously running gateways sharing one queue may send the same SMS more than once because polling is deliberately non-destructive.

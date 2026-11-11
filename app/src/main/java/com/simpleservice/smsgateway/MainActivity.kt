@@ -166,7 +166,8 @@ class MainActivity : AppCompatActivity() {
         status.text = "Loading JSON…"
         Thread {
             try {
-                val items = http.fetch(config.sourceUrl, config.jwt)
+                val token = http.activeJwt(config)
+                val items = http.fetch(config.sourceUrl, token)
                 runOnUiThread {
                     currentItems = items
                     renderItems(items)
@@ -217,7 +218,7 @@ class MainActivity : AppCompatActivity() {
         Thread {
             val result = SmsSendCoordinator.sendAndWait(this, item)
             val callbackError = try {
-                http.report(config.callbackUrl, config.jwt, item, result)
+                http.report(config.callbackUrl, http.activeJwt(GatewayPreferences.load(this)), item, result)
                 null
             } catch (error: Exception) {
                 error.message ?: error.javaClass.simpleName
